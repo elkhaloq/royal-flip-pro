@@ -1,98 +1,104 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import './App.css';
 
-// صور العملة اللي بعتها
-const HEADS_IMG = "https://i.ibb.co/LzN78fW/heads.jpg"; // ارفع صورتك هنا
-const TAILS_IMG = "https://i.ibb.co/M9YV8Yp/tails.jpg"; // ارفع صورتك هنا
-
 function App() {
-  const [gameState, setGameState] = useState('lobby'); // lobby, matching, playing, result
-  const [user, setUser] = useState({ id: "641124", name: "عبدالرحمن", balance: 1000, isDemo: false });
+  const [user, setUser] = useState({ id: '641124', balance: 1000, name: 'لاعب رويال' });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [gameState, setGameState] = useState('lobby'); // lobby, matching, playing
   const [bet, setBet] = useState(10);
-  const [selectedSide, setSelectedSide] = useState(null);
-  const [opponent, setOpponent] = useState(null);
-  const [rounds, setRounds] = useState([]); // نتائج الجولات
+  const [rounds, setRounds] = useState([]); // نتائج الجولات (ملك/كتابة)
   const [isSpinning, setIsSpinning] = useState(false);
 
-  // نظام البحث عن خصم (5 ثواني)
-  const startMatch = (side) => {
-    if (user.balance < bet) return alert("رصيدك لا يكفي!");
-    setSelectedSide(side);
-    setGameState('matching');
-    
-    // بوتات بأسماء مصرية
-    const bots = ["أحمد علي", "سارة محمد", "محمود كابو", "إبراهيموفيتش المصري"];
-    setOpponent({ name: bots[Math.floor(Math.random()*bots.length)], balance: bet });
+  // الدخول السري للأدمن (ضغط مطول 5 ثواني)
+  let timer;
+  const startAdminTimer = () => {
+    timer = setTimeout(() => {
+      const pin = prompt("أدخل رمز الإدارة السري:");
+      if (pin === "64112416") setIsAdmin(true);
+    }, 5000);
+  };
+  const clearAdminTimer = () => clearTimeout(timer);
 
+  const startMatch = (side) => {
+    if (user.balance < bet) return alert("رصيدك غير كافٍ!");
+    setGameState('matching');
+    // محاكاة البحث عن خصم لمدة 5 ثواني
     setTimeout(() => {
       setGameState('playing');
-      playRound();
+      handlePlay();
     }, 5000);
   };
 
-  const playRound = () => {
+  const handlePlay = () => {
     setIsSpinning(true);
     setTimeout(() => {
-      const result = Math.random() > 0.5 ? 'head' : 'tail';
+      const result = Math.random() > 0.5 ? 'ملك' : 'كتابة';
+      setRounds([result]);
       setIsSpinning(false);
-      setRounds(prev => [...prev, result]);
-      // هنا بنطبق منطق الـ 3 جولات
+      // هنا السيستم بيحدد الفوز بناءً على نسبة الأدمن (هتتبرمج في الخطوة الجاية)
     }, 2000);
   };
 
-  return (
-    <div className="app-container">
-      {/* Header - الرصيد */}
-      <div className="header">
-        <div className="logo" onTouchStart={() => console.log("Secret Admin Login")}>ROYAL FLIP</div>
-        <div className="balance-box">رصيدك: {user.balance} ج.م</div>
+  if (isAdmin) return (
+    <div className="admin-panel" style={{direction: 'rtl', padding: '20px', background: '#000', height: '100dvh'}}>
+      <h2 style={{color: 'gold'}}>لوحة التحكم v43.0 👑</h2>
+      <button onClick={() => setIsAdmin(false)}>خروج</button>
+      <div style={{marginTop: '20px'}}>
+        <p>نسبة الفوز الحالية: 70%</p>
+        <button>تغيير أرقام المحافظ</button>
+        <button>طلبات الإيداع (0)</button>
+        <button>طلبات السحب (0)</button>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="app-container" style={{direction: 'rtl'}}>
+      <header className="header">
+        <div className="logo" onMouseDown={startAdminTimer} onMouseUp={clearAdminTimer} onTouchStart={startAdminTimer} onTouchEnd={clearAdminTimer}>ROYAL FLIP</div>
+        <div className="balance">رصيدك: {user.balance} ج.م</div>
+      </header>
 
       {gameState === 'lobby' && (
         <div className="lobby">
-          <div className="coin-preview">🪙</div>
-          <h3>اختار الرهان</h3>
-          <div className="bet-buttons">
+          <div className="bet-selector">
             {[10, 50, 100, 500].map(amt => (
               <button key={amt} onClick={() => setBet(amt)} className={bet === amt ? 'active' : ''}>{amt}</button>
             ))}
           </div>
-          <div className="play-actions">
-            <button onClick={() => startMatch('head')}>ملك 🤴</button>
-            <button onClick={() => startMatch('tail')}>كتابة 🦅</button>
+          <div className="action-buttons">
+            <button onClick={() => startMatch('ملك')} className="btn-heads">ملك 🤴</button>
+            <button onClick={() => startMatch('كتابة')} className="btn-tails">كتابة 🦅</button>
           </div>
-          <button className="demo-btn">وضع التجربة (DEMO)</button>
+          <button className="demo-btn">وضع DEMO</button>
         </div>
       )}
 
       {gameState === 'matching' && (
-        <div className="matching-screen">
+        <div className="matching">
           <div className="loader"></div>
-          <h2>جاري البحث عن خصم...</h2>
-          <div className="countdown">5</div>
+          <h2>جاري البحث عن خصم مصري...</h2>
         </div>
       )}
 
       {gameState === 'playing' && (
-        <div className="game-field">
+        <div className="game">
           <div className="arena">
-            <div className="player">أنت</div>
-            <div className="central-vault">الخزنة: {bet * 2} ج.م</div>
-            <div className="opponent">{opponent?.name}</div>
-          </div>
-          <div className={`main-coin ${isSpinning ? 'spin' : ''}`}>
-            {/* هنا تظهر صورة العملة */}
+            <div className="vault">خزنة الرهان: {bet * 2} ج.م</div>
+            <div className={`coin ${isSpinning ? 'spin' : ''}`}>
+              {rounds[0] === 'ملك' ? '🤴' : '🦅'}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Navigation Bottom */}
-      <div className="nav-bottom">
-        <button>الرئيسية</button>
-        <button>إيداع</button>
-        <button>سحب</button>
+      <footer className="footer-nav">
+        <button onClick={() => setGameState('lobby')}>الرئيسية</button>
+        <button onClick={() => alert('افتح محفظة الإيداع')}>إيداع</button>
+        <button onClick={() => alert('افتح صفحة السحب')}>سحب</button>
         <button>الملف الشخصي</button>
-      </div>
+      </footer>
     </div>
   );
 }
