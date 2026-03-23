@@ -1,84 +1,100 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
+
+// صور العملة اللي بعتها
+const HEADS_IMG = "https://i.ibb.co/LzN78fW/heads.jpg"; // ارفع صورتك هنا
+const TAILS_IMG = "https://i.ibb.co/M9YV8Yp/tails.jpg"; // ارفع صورتك هنا
 
 function App() {
-  const [user, setUser] = useState({ balance: 0, name: "لاعب رويال" });
+  const [gameState, setGameState] = useState('lobby'); // lobby, matching, playing, result
+  const [user, setUser] = useState({ id: "641124", name: "عبدالرحمن", balance: 1000, isDemo: false });
   const [bet, setBet] = useState(10);
+  const [selectedSide, setSelectedSide] = useState(null);
+  const [opponent, setOpponent] = useState(null);
+  const [rounds, setRounds] = useState([]); // نتائج الجولات
   const [isSpinning, setIsSpinning] = useState(false);
-  const [side, setSide] = useState('head'); // head or tail
 
-  // دالة الإيداع (تفتح واتساب أو تظهر رقم فودافون كاش)
-  const handleDeposit = () => {
-    const phoneNumber = "010XXXXXXXX"; // حط رقمك هنا
-    alert(`لإتمام الإيداع، قم بتحويل المبلغ إلى: ${phoneNumber} ثم أرسل صورة التحويل للدعم.`);
-    window.open(`https://wa.me/20${phoneNumber.substring(1)}?text=اريد_شحن_رصيد`);
+  // نظام البحث عن خصم (5 ثواني)
+  const startMatch = (side) => {
+    if (user.balance < bet) return alert("رصيدك لا يكفي!");
+    setSelectedSide(side);
+    setGameState('matching');
+    
+    // بوتات بأسماء مصرية
+    const bots = ["أحمد علي", "سارة محمد", "محمود كابو", "إبراهيموفيتش المصري"];
+    setOpponent({ name: bots[Math.floor(Math.random()*bots.length)], balance: bet });
+
+    setTimeout(() => {
+      setGameState('playing');
+      playRound();
+    }, 5000);
   };
 
-  const play = (chosenSide) => {
-    if (user.balance < bet) return alert("رصيدك غير كافٍ! اشحن الآن.");
+  const playRound = () => {
     setIsSpinning(true);
-    
     setTimeout(() => {
       const result = Math.random() > 0.5 ? 'head' : 'tail';
-      setSide(result);
       setIsSpinning(false);
-      
-      if (chosenSide === result) {
-        setUser(prev => ({ ...prev, balance: prev.balance + bet }));
-        alert("مبروك! كسبت ضعف الرهان 🎉");
-      } else {
-        setUser(prev => ({ ...prev, balance: prev.balance - bet }));
-        alert("حظ أوفر المرة القادمة 💸");
-      }
+      setRounds(prev => [...prev, result]);
+      // هنا بنطبق منطق الـ 3 جولات
     }, 2000);
   };
 
   return (
-    <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: 'white', fontFamily: 'Cairo, sans-serif', direction: 'rtl' }}>
-      {/* Header */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '20px', backgroundColor: '#1e293b' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '20px', color: '#fbbf24' }}>ROYAL FLIP 👑</div>
-        <div style={{ backgroundColor: '#0f172a', padding: '5px 15px', borderRadius: '10px' }}>
-          الرصيد: <span style={{ color: '#10b981' }}>{user.balance} ج.م</span>
-        </div>
-      </nav>
-
-      {/* Game Body */}
-      <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <div className={`coin ${isSpinning ? 'spinning' : ''}`} style={{
-          width: '150px', height: '150px', borderRadius: '50%', backgroundColor: '#fbbf24',
-          margin: '0 auto', fontSize: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 30px #fbbf24', transition: '2s'
-        }}>
-          {side === 'head' ? '🤴' : '🦅'}
-        </div>
-
-        <h2 style={{ marginTop: '30px' }}>اختار وجه العملة والعب</h2>
-        
-        <div style={{ margin: '20px' }}>
-          <input type="number" value={bet} onChange={(e) => setBet(Number(e.target.value))} 
-            style={{ padding: '10px', borderRadius: '5px', width: '100px', textAlign: 'center' }} />
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
-          <button onClick={() => play('head')} disabled={isSpinning} style={btnStyle('#fbbf24')}>ملك</button>
-          <button onClick={() => play('tail')} disabled={isSpinning} style={btnStyle('#94a3b8')}>كتابة</button>
-        </div>
+    <div className="app-container">
+      {/* Header - الرصيد */}
+      <div className="header">
+        <div className="logo" onTouchStart={() => console.log("Secret Admin Login")}>ROYAL FLIP</div>
+        <div className="balance-box">رصيدك: {user.balance} ج.م</div>
       </div>
 
-      {/* Action Buttons */}
-      <div style={{ position: 'fixed', bottom: '20px', width: '100%', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-        <button onClick={handleDeposit} style={actionBtn('#10b981')}>إيداع 💰</button>
-        <button onClick={() => alert('سيتم مراجعة طلب السحب')} style={actionBtn('#ef4444')}>سحب 💳</button>
-      </div>
+      {gameState === 'lobby' && (
+        <div className="lobby">
+          <div className="coin-preview">🪙</div>
+          <h3>اختار الرهان</h3>
+          <div className="bet-buttons">
+            {[10, 50, 100, 500].map(amt => (
+              <button key={amt} onClick={() => setBet(amt)} className={bet === amt ? 'active' : ''}>{amt}</button>
+            ))}
+          </div>
+          <div className="play-actions">
+            <button onClick={() => startMatch('head')}>ملك 🤴</button>
+            <button onClick={() => startMatch('tail')}>كتابة 🦅</button>
+          </div>
+          <button className="demo-btn">وضع التجربة (DEMO)</button>
+        </div>
+      )}
 
-      <style>{`
-        .spinning { transform: rotateY(1800deg); }
-      `}</style>
+      {gameState === 'matching' && (
+        <div className="matching-screen">
+          <div className="loader"></div>
+          <h2>جاري البحث عن خصم...</h2>
+          <div className="countdown">5</div>
+        </div>
+      )}
+
+      {gameState === 'playing' && (
+        <div className="game-field">
+          <div className="arena">
+            <div className="player">أنت</div>
+            <div className="central-vault">الخزنة: {bet * 2} ج.م</div>
+            <div className="opponent">{opponent?.name}</div>
+          </div>
+          <div className={`main-coin ${isSpinning ? 'spin' : ''}`}>
+            {/* هنا تظهر صورة العملة */}
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Bottom */}
+      <div className="nav-bottom">
+        <button>الرئيسية</button>
+        <button>إيداع</button>
+        <button>سحب</button>
+        <button>الملف الشخصي</button>
+      </div>
     </div>
   );
 }
-
-const btnStyle = (bg) => ({ padding: '15px 30px', backgroundColor: bg, color: 'black', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' });
-const actionBtn = (bg) => ({ padding: '12px 25px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '50px', fontWeight: 'bold' });
 
 export default App;
