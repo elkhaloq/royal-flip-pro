@@ -1,76 +1,84 @@
 import React, { useState, useEffect } from 'react';
 
 function App() {
-  const [balance, setBalance] = useState(1000);
+  const [user, setUser] = useState({ balance: 0, name: "لاعب رويال" });
   const [bet, setBet] = useState(10);
-  const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState(null);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [side, setSide] = useState('head'); // head or tail
 
-  const flipCoin = () => {
-    if (balance < bet) {
-      alert("رصيدك لا يكفي!");
-      return;
-    }
-    
-    setSpinning(true);
-    setResult(null);
+  // دالة الإيداع (تفتح واتساب أو تظهر رقم فودافون كاش)
+  const handleDeposit = () => {
+    const phoneNumber = "010XXXXXXXX"; // حط رقمك هنا
+    alert(`لإتمام الإيداع، قم بتحويل المبلغ إلى: ${phoneNumber} ثم أرسل صورة التحويل للدعم.`);
+    window.open(`https://wa.me/20${phoneNumber.substring(1)}?text=اريد_شحن_رصيد`);
+  };
+
+  const play = (chosenSide) => {
+    if (user.balance < bet) return alert("رصيدك غير كافٍ! اشحن الآن.");
+    setIsSpinning(true);
     
     setTimeout(() => {
-      const isWin = Math.random() > 0.5;
-      if (isWin) {
-        setBalance(prev => prev + bet);
-        setResult("فوز! 🎉");
+      const result = Math.random() > 0.5 ? 'head' : 'tail';
+      setSide(result);
+      setIsSpinning(false);
+      
+      if (chosenSide === result) {
+        setUser(prev => ({ ...prev, balance: prev.balance + bet }));
+        alert("مبروك! كسبت ضعف الرهان 🎉");
       } else {
-        setBalance(prev => prev - bet);
-        setResult("خسارة! 💸");
+        setUser(prev => ({ ...prev, balance: prev.balance - bet }));
+        alert("حظ أوفر المرة القادمة 💸");
       }
-      setSpinning(false);
-    }, 1000);
+    }, 2000);
   };
 
   return (
-    <div style={{ backgroundColor: '#0f172a', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ color: 'gold', fontSize: '3rem', marginBottom: '20px' }}>Royal Flip</h1>
-      
-      <div style={{ backgroundColor: '#1e293b', padding: '30px', borderRadius: '20px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-        <h2 style={{ fontSize: '1.5rem' }}>رصيدك: <span style={{ color: '#10b981' }}>{balance} ج.م</span></h2>
+    <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: 'white', fontFamily: 'Cairo, sans-serif', direction: 'rtl' }}>
+      {/* Header */}
+      <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '20px', backgroundColor: '#1e293b' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '20px', color: '#fbbf24' }}>ROYAL FLIP 👑</div>
+        <div style={{ backgroundColor: '#0f172a', padding: '5px 15px', borderRadius: '10px' }}>
+          الرصيد: <span style={{ color: '#10b981' }}>{user.balance} ج.م</span>
+        </div>
+      </nav>
+
+      {/* Game Body */}
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <div className={`coin ${isSpinning ? 'spinning' : ''}`} style={{
+          width: '150px', height: '150px', borderRadius: '50%', backgroundColor: '#fbbf24',
+          margin: '0 auto', fontSize: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 30px #fbbf24', transition: '2s'
+        }}>
+          {side === 'head' ? '🤴' : '🦅'}
+        </div>
+
+        <h2 style={{ marginTop: '30px' }}>اختار وجه العملة والعب</h2>
         
-        <div style={{ margin: '30px 0' }}>
-          <div style={{ 
-            width: '120px', height: '120px', borderRadius: '50%', backgroundColor: 'gold', margin: '0 auto',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem',
-            transition: 'transform 1s', transform: spinning ? 'rotateY(1800deg)' : 'none',
-            boxShadow: '0 0 20px gold'
-          }}>
-            💰
-          </div>
+        <div style={{ margin: '20px' }}>
+          <input type="number" value={bet} onChange={(e) => setBet(Number(e.target.value))} 
+            style={{ padding: '10px', borderRadius: '5px', width: '100px', textAlign: 'center' }} />
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label>مبلغ الرهان: </label>
-          <input 
-            type="number" 
-            value={bet} 
-            onChange={(e) => setBet(Number(e.target.value))}
-            style={{ padding: '8px', borderRadius: '5px', border: 'none', width: '80px', textAlign: 'center' }}
-          />
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+          <button onClick={() => play('head')} disabled={isSpinning} style={btnStyle('#fbbf24')}>ملك</button>
+          <button onClick={() => play('tail')} disabled={isSpinning} style={btnStyle('#94a3b8')}>كتابة</button>
         </div>
-
-        <button 
-          onClick={flipCoin} 
-          disabled={spinning}
-          style={{ 
-            padding: '15px 40px', fontSize: '1.2rem', fontWeight: 'bold', cursor: 'pointer',
-            backgroundColor: spinning ? '#64748b' : '#f59e0b', color: 'white', border: 'none', borderRadius: '10px'
-          }}
-        >
-          {spinning ? 'جاري السحب...' : 'العب الآن'}
-        </button>
-
-        {result && <h3 style={{ marginTop: '20px', color: result.includes("فوز") ? '#10b981' : '#ef4444' }}>{result}</h3>}
       </div>
+
+      {/* Action Buttons */}
+      <div style={{ position: 'fixed', bottom: '20px', width: '100%', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+        <button onClick={handleDeposit} style={actionBtn('#10b981')}>إيداع 💰</button>
+        <button onClick={() => alert('سيتم مراجعة طلب السحب')} style={actionBtn('#ef4444')}>سحب 💳</button>
+      </div>
+
+      <style>{`
+        .spinning { transform: rotateY(1800deg); }
+      `}</style>
     </div>
   );
 }
+
+const btnStyle = (bg) => ({ padding: '15px 30px', backgroundColor: bg, color: 'black', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' });
+const actionBtn = (bg) => ({ padding: '12px 25px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '50px', fontWeight: 'bold' });
 
 export default App;
